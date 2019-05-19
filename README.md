@@ -25,6 +25,38 @@ Example call that analyzes a multichannel test signal on the fly, at 96 kHz:
 
     gst-launch-1.0 pulsesrc ! audio/x-raw,rate=96000 ! driftmeasure ! filesink location=measured-drift.csv
 
+This element was tested with GStreamer 1.14.4, but should work with all versions
+starting at 1.4.
+
+
+Building and installing
+-----------------------
+
+This project uses [meson](https://mesonbuild.com) as its build system. Amongst other reasons, this makes
+integration with existing GStreamer build setups easier, such as [Cerbero](https://gitlab.freedesktop.org/gstreamer/cerbero).
+
+First, if you need to run this element on a different platform such as an ARM SBC,
+set up [the necessary cross compilation configuration for meson](https://mesonbuild.com/Cross-compilation.html).
+
+Then, create a build directory for an out-of-tree build:
+
+    make build
+    cd build
+
+Now set up the build by running meson:
+
+    meson ..
+
+You might want to look into the `--buildtype=plain` flag if the compiler flags Meson adds are a problem.
+This is particularly useful for packagers. [Read here for more.](https://mesonbuild.com/Quick-guide.html#using-meson-as-a-distro-packager)
+
+Also, you might be interested in the `-Dprefix` and `-Dlibdir` arguments to control where to install the
+resulting binaries. Again, this is particularly useful for packagers.
+
+Finally, build and install the code by running ninja:
+
+    ninja install
+
 
 Test signal
 -----------
