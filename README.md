@@ -177,3 +177,7 @@ Example call for producing a graph out of CSV data, with additional filtered
 trend graphs enabled and outliers trimmed:
 
     ./create-graph.r -i csv-data.csv -o plot.png --with-filtered-plot --trim-outliers
+
+Example output (using simulated data):
+
+![example graph output](example-graph-output.png)
