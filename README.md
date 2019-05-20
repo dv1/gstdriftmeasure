@@ -28,6 +28,10 @@ Example call that analyzes a multichannel test signal on the fly, at 96 kHz:
 This element was tested with GStreamer 1.14.4, but should work with all versions
 starting at 1.4.
 
+*IMPORTANT:* If you the `audioconvert` element comes before `driftmeasure`,
+make sure that its `dithering` property is set to `none` (or 0). Otherwise,
+dithering may cause inaccuracies in the measurement.
+
 
 Building and installing
 -----------------------
