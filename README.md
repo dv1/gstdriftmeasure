@@ -57,6 +57,11 @@ Finally, build and install the code by running ninja:
 
     ninja install
 
+If you want to run the plugin locally, without installing it, or if you install it to a non-standard
+location in your filesystem, be sure to set the `GST_PLUGIN_PATH` environment variable to point to
+the location where the `libgstdriftmeasure.so` plugin is. For more information about this variable,
+[read this document](https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gstreamer/html/gst-running.html).
+
 
 Test signal
 -----------
