@@ -1249,6 +1249,7 @@ static GstFlowReturn gst_drift_measure_process_input_buffer(GstDriftMeasure *dri
 					 * enough data before and after the pulse we detected. */
 
 					num_frames_to_discard = peak_frame_index + drift_measure->pulse_length_in_frames / 2;
+					num_frames_to_discard = MIN(num_frames_to_discard, num_available_frames);
 
 					GST_DEBUG_OBJECT(drift_measure, "not enough samples in history for peak window -> ignoring peak and discarding the oldest %" G_GSIZE_FORMAT " frames", num_frames_to_discard);
 					gst_adapter_flush(drift_measure->frame_history, num_frames_to_discard * bytes_per_frame);
