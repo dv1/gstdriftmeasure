@@ -32,9 +32,15 @@ starting at 1.4.
 make sure that its `dithering` property is set to `none` (or 0). Otherwise,
 dithering may cause inaccuracies in the measurement.
 
+In addition, a Python 3.x script is provided, `driftmeasure-frontend.py`, for
+when one just wants to do drift measurements right away. The script sets up
+a GStreamer pipeline that captures PCM data from a PulseAudio source, produces
+a CSV file, and optionally a WAV dump of the captured data. How to set up and
+use that script is described in a section below.
 
-Building and installing
------------------------
+
+Building and installing the GStreamer 1.x plugin
+------------------------------------------------
 
 This project uses [meson](https://mesonbuild.com) as its build system. Amongst other reasons, this makes
 integration with existing GStreamer build setups easier, such as [Cerbero](https://gitlab.freedesktop.org/gstreamer/cerbero).
@@ -78,6 +84,36 @@ One recommended signal structure: one sine wave period of 1000 Hz (we call
 this the _signal pulse_), followed by one second of silence. Then, another
 signal pulse (exactly like the previous one) appears, again followed by one
 second of silence etc. This allows for detecting a drift of up to 500 ms.
+
+
+Structure of a good test signal
+-------------------------------
+
+![signal structure illustration](test-signal-illustration.png)
+
+This illustrates how a good test signal looks like. There are several
+quantities that are used by the driftmeasure element:
+
+1. The "pulse length". This is the length of the signal pulse itself. In the
+   illustration, it is shown as the range covered by the red lines.
+
+2. The "window size". This is the length of the "window" (see below). In the
+   illustration, it is shown as the range covered by the green lines.
+
+3. The "peak threshold". This is a threshold for sample values below which
+   samples are ignored. It is shown in the illustration as the yellow
+   horizontal line.
+
+A good test signal must have pulses with pointed peaks. In this example,
+the test signal has a peak that is one sample wide, which is ideal. Flat
+peaks however are suboptimal, since the driftmeasure element then cannot detect
+peaks properly, resulting in incorrect drift measurements.
+
+It is important to know the correct window size, peak threshold, and pulse length
+of the test signal. The peak threshold should be picked such that is above any
+other potential local maxima, but not too close to the actual signal peak.
+That way, the threshold can efficiently filter out any influence from noise
+artifacts (which have low amplitude), and still let the true peak through.
 
 
 How the measurement works
@@ -141,7 +177,7 @@ and switch back to search mode, to look for more peaks.
 CSV layout
 ----------
 
-The CSV output is like this:
+The CSV output looks like this:
 
     <timestamp>,<drift between reference and non-reference 1>,<drift between reference and non-reference 2>...
 
@@ -181,3 +217,76 @@ trend graphs enabled and outliers trimmed:
 Example output (using simulated data):
 
 ![example graph output](example-graph-output.png)
+
+
+Using the Python frontend script
+--------------------------------
+
+The Python script conveniently takes care of setting up a GStreamer pipeline
+that captures PCM data via PulseAudio and measures drift.
+
+Note that this is a Python 3 script, not a Python 2 one.
+
+To use it, first make sure that GStreamer Python support is present, and that
+the `pulsectl` Python module is installed. In Ubuntu, run these commands in
+a shell:
+
+    sudo apt install gir1.2-gstreamer-1.0 python3-pip
+    pip3 install pulsectl
+
+Then, build the gstdriftmeasure plugin as described above in the
+"Building and installing" section. Now you can run the script.
+
+The script requires a PulseAudio source to be explicitely specified. For
+convenience, it can list the names and descriptions of the available sources.
+Run:
+
+    ./driftmeasure-frontend.py --list-available-sources
+
+Example output:
+
+2 PulseAudio source(s) available
+
+    #0:
+             name: "alsa_output.pci-0000_00_1f.3.analog-stereo.monitor"
+      description: "Monitor of Built-in Audio Analog Stereo"
+    #1:
+             name: "alsa_input.pci-0000_00_1f.3.analog-stereo"
+      description: "Built-in Audio Analog Stereo"
+
+Note that the "Monitor" sources are not true capture devices. They capture
+the output that goes to a sink. In other words, they are _loopback_ devices.
+Typically, these are of no interest for drift measurement.
+
+In this example, "alsa_input.pci-0000_00_1f.3.analog-stereo" would be a name
+that could be passed to the script, like this:
+
+    ./driftmeasure-frontend.py --source-name="alsa_input.pci-0000_00_1f.3.analog-stereo" --output-csv-filename=output.csv
+
+This would capture PCM data from the analog input device, detect drift there,
+and output it to "output.csv".
+
+Normally, the analyzed PCM data is not kept around. This is useful, since it
+makes it possible to analyze the drift for a very long time without worrying
+about storage space for huge amounts of PCM data. However, sometimes it may
+be desirable to also dump the PCM data to WAV. The script can be instructed
+to do so. Example:
+
+    ./driftmeasure-frontend.py --source-name="alsa_input.pci-0000_00_1f.3.analog-stereo" --output-csv-filename=output.csv --output-wav-filename=output.wav
+
+Please note that running this for a long time will produce very large WAV
+files, so be sure that there is enough storage space available.
+
+By default, the script records data with a sample rate of 96 kHz. This can
+be changed with the `--sample-rate` switch. Also, by default, it records
+2 channels. As explained above, 1 channel is the reference channel (0 by
+default), the others are additional devices. Typically, a multiroom sender
+is set as the reference channel, and the receivers are the other channels.
+If there is only 1 sender and 1 receiver, then the default of 2 channels
+is fine. But if for example there are 3 receivers, it is necessary to
+specify that 4 channels must be captured. This is done with the
+`--num-channels` switch.
+
+Additional switches for more configuration are listed by running:
+
+    ./driftmeasure-frontend.py --help
