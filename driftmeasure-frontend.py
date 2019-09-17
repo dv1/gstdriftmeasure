@@ -76,6 +76,14 @@ class Pipeline:
 		# here, since we use artificial test signals. Instead, we must make sure that
 		# the signal doesn't get noisier due to dithering. Easiest way to do that is
 		# to just turn it off.
+		#
+		# The filesinks' async properties are set to false. "async" means that the
+		# sink asynchronously switches its state, from PAUSED to PLAYING. Such an
+		# asynchronous state change is useful for streams that need to play in sync
+		# with the pipeline clock (audio sinks are one example). However, here, we
+		# do not care about synchronized output. Furthermore, the output of the
+		# driftmeasure plugin is sparse. Therefore, it makes no sense to use an
+		# async PAUSED->PLAYING state change, so just turn it off.
 
 		self.source_name = configuration.source_name
 
@@ -111,6 +119,7 @@ class Pipeline:
 		# reference channel but no peaks in the other channels.
 		csv_driftmeasure.set_property('omit-output-if-no-peaks', True)
 		csv_filesink.set_property('location', configuration.output_csv_filename)
+		csv_filesink.set_property('async', False)
 
 		if configuration.output_wav_filename:
 			wav_queue = self.__create_element("queue", "wav_queue")
@@ -130,9 +139,6 @@ class Pipeline:
 
 			wav_audioconvert.set_property('dithering', 'none')
 			wav_filesink.set_property('location', configuration.output_wav_filename)
-			# Set wav_filesink's async property to false to make sure it
-			# does not deadlock, which can otherwise happen if there are
-			# two branches with two sinks active.
 			wav_filesink.set_property('async', False)
 
 		bus = self.pipeline.get_bus()
