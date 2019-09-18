@@ -1257,6 +1257,29 @@ static GstFlowReturn gst_drift_measure_process_input_buffer(GstDriftMeasure *dri
 
 					loop = FALSE;
 				}
+				else if ((num_available_frames - peak_frame_index) < drift_measure->pulse_length_in_frames)
+				{
+					/* We found a peak, but it is too close to the end of
+					 * the number of available samples in the history.
+					 * This is a problem, since then, the peak we found may
+					 * not be the true peak - the true peak may come in the
+					 * next buffer. This happens when the source records one
+					 * buffer worth of data, and captures only a first part
+					 * of the pulse. The next buffer will then contain the
+					 * rest of the pulse. So, to make sure we do not wrongly
+					 * detect the maximum sample value in the first buffer
+					 * as the peak, we check how close the detected peak is
+					 * to the end of the history. If the distance is smaller
+					 * than the pulse length, then we cannot be sure that we
+					 * really got the actual peak, and just ignore it for now.
+					 * We do NOT discard any samples from the history. That
+					 * way, data from the next input buffer will be appended,
+					 * and we'll have a full pulse in the history that can
+					 * be properly analyzed. */
+
+					GST_DEBUG_OBJECT(drift_measure, "found a peak, but it is too close to the end of the history; ignoring it for now");
+					loop = FALSE;
+				}
 				else
 				{
 					/* We found a peak, and there is enough data before
