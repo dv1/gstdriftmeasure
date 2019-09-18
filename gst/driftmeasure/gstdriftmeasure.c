@@ -974,7 +974,7 @@ static void gst_drift_measure_find_largest_frame(GstDriftMeasure *drift_measure,
 		if (sample < drift_measure->peak_threshold)
 			continue;
 
-		if (((*largest_frame_index) == UNDEFINED_INDEX) || ((sample - *largest_sample) > FLT_EPSILON))
+		if ((largest_sample_index == UNDEFINED_INDEX) || (sample > *largest_sample))
 		{
 			largest_sample_index = sample_index;
 			*largest_sample = sample;
