@@ -120,6 +120,7 @@ class Pipeline:
 		csv_driftmeasure.set_property('omit-output-if-no-peaks', True)
 		csv_filesink.set_property('location', configuration.output_csv_filename)
 		csv_filesink.set_property('async', False)
+		csv_filesink.set_property('buffer-mode', 'unbuffered')
 
 		if configuration.output_wav_filename:
 			wav_queue = self.__create_element("queue", "wav_queue")
