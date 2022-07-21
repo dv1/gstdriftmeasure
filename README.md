@@ -209,6 +209,17 @@ of these graphs to help show the overall trend better.
 In addition, the script can trim the CSV data it read to get rid of outliers.
 This is useful if errors occurred during measurement.
 
+To run the script, the following R packages must be installed:
+
+* [signal](https://cran.r-project.org/web/packages/signal/)
+* [argparser](https://cran.r-project.org/web/packages/argparser/)
+
+In case an error like `could not find function "butter"` appears, check that the
+`signal` package is at least version 0.7-7. To install the packages, use the
+`install.packages` function in the R shell (with the package name quoted), like this:
+
+    install.packages("argparser")
+
 Example call for producing a graph out of CSV data, with additional filtered
 trend graphs enabled and outliers trimmed:
 
