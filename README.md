@@ -115,6 +115,14 @@ other potential local maxima, but not too close to the actual signal peak.
 That way, the threshold can efficiently filter out any influence from noise
 artifacts (which have low amplitude), and still let the true peak through.
 
+Starting with version 1.14, GStreamer's `audiotestsrc` element is capable of
+generating a test signal. To do that, use its "ticks" waveform. This is an example
+`gst-launch-1.0` command line which generates one single-sine-period 1khz pulse
+with 1 second of silence between pulses and renders it as 48 kHz S32LE mono PCM:
+
+    gst-launch-1.0 audiotestsrc sine-periods-per-tick=1 freq=1000 wave=ticks volume=0.8 ! "audio/x-raw, format=S32LE, channels=1, rate=48000" ! alsasink
+
+
 
 How the measurement works
 -------------------------
