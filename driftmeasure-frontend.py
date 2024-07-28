@@ -221,8 +221,10 @@ class Pipeline:
 		return True
 
 
-# Enable multithreading support in GLib
-GObject.threads_init()
+# Enable multithreading support in GLib (necessary if PyGOBject is older than 3.11)
+pygobject_version = gi.version_info
+if (pygobject_version[0] < 3) or (pygobject_version[0] == 3 and pygobject_version[1] < 11):
+	GObject.threads_init()
 
 # Setup GStreamer
 Gst.init(sys.argv)
