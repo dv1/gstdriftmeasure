@@ -24,6 +24,7 @@ argp <- add_argument(argp, "--output", type = "character", help = "output PNG im
 argp <- add_argument(argp, "--labels", type = "character", nargs = "*", help = "label for each plot (used like: -l label1 label2 label3)")
 argp <- add_argument(argp, "--with-filtered-plot", help = "also created filtered plot to show overall trend", flag = TRUE)
 argp <- add_argument(argp, "--trim-outliers", help = "trim outliers before producing graph", flag = TRUE)
+argp <- add_argument(argp, "--trim-beginning", type = "integer", help = "trim the first N values")
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) == 0)
@@ -55,6 +56,12 @@ if (all(is.na(csv[,length(csv)])))
 for (i in 1:length(csv))
 	csv[,i] <- as.numeric(as.character(csv[,i]));
 csv <- na.omit(csv);
+
+# trim the first N values if requested
+if (is.integer(opt$trim_beginning) && (opt$trim_beginning > 0))
+{
+	csv <- csv[(opt$trim_beginning + 1):length(csv[,1]),]
+}
 
 # trim outliers if requested
 if (opt$trim_outliers)
