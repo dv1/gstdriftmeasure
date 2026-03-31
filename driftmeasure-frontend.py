@@ -95,7 +95,15 @@ class Pipeline:
 		csv_driftmeasure = self.__create_element("driftmeasure", "csv_driftmeasure")
 		csv_filesink = self.__create_element("filesink", "csv_filesink")
 
-		src_caps = Gst.Caps.from_string("audio/x-raw, rate=(int){}, channels=(int){}".format(configuration.sample_rate, configuration.num_channels))
+		# Set the channel mask such that the first num_channels input channels are
+		# also the output channels. For example, a 0x1c7 channel mask (in binary,
+		# 0b0000000111000111) would select channels 0-2 and 6-8 as the channels to use,
+		# which is not what we want. Channel mask 0x3f (0b0000000000111111) however
+		# would. From this it follows that (1<<num_channels)-1 produces a channel mask
+		# that performs a 1:1 mapping - input channel N becomes output channel N.
+		channel_mask = (1 << configuration.num_channels) - 1
+
+		src_caps = Gst.Caps.from_string("audio/x-raw, rate=(int){}, channels=(int){}, channel-mask=(bitmask){}".format(configuration.sample_rate, configuration.num_channels, hex(channel_mask)))
 
 		self.pipeline.add(self.pulsesrc)
 		self.pipeline.add(tee)
