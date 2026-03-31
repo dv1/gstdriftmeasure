@@ -219,10 +219,11 @@ class Pipeline:
 		elif message.type == Gst.MessageType.LATENCY:
 			# As the GStreamer documentation states, it is recommended
 			# to call recalculate_latency() once this message arrives.
-			msg('Recalculatinge pipeline latency', 2)
+			msg('Recalculating pipeline latency', 2)
 			self.pipeline.recalculate_latency()
 
 		elif message.type == Gst.MessageType.EOS:
+			Gst.debug_bin_to_dot_file_with_ts(self.pipeline, Gst.DebugGraphDetails.ALL, "eos")
 			msg('End of stream detected', 2)
 			self.mainloop.quit()
 
