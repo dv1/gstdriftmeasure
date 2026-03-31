@@ -52,10 +52,11 @@ csv <- read.csv(opt$input, header=FALSE, sep=",");
 if (all(is.na(csv[,length(csv)])))
 	csv <- csv[,1:(length(csv)-1)];
 
-# drop all incomplete rows to avoid NaN values
+# convert CSV cells from string to int; empty and non-numeric cells are converted to NaN
 for (i in 1:length(csv))
 	csv[,i] <- as.numeric(as.character(csv[,i]));
-csv <- na.omit(csv);
+# drop all rows which have an NA timestamp value
+csv <- csv[!is.na(csv[,1]), ]
 
 # trim the first N values if requested
 if (is.integer(opt$trim_beginning) && (opt$trim_beginning > 0))
@@ -63,11 +64,18 @@ if (is.integer(opt$trim_beginning) && (opt$trim_beginning > 0))
 	csv <- csv[(opt$trim_beginning + 1):length(csv[,1]),]
 }
 
-# trim outliers if requested
+# trim outliers if requested; this will set the value of outliers in the columns (= channels) to NA
 if (opt$trim_outliers)
 {
 	for (i in 1:length(csv))
-		csv <- csv[!csv[,i] %in% boxplot.stats(csv[,i])$out,]
+	{
+		# extract the values of column i
+		col_vals <- csv[,i]
+		# get outlier stats for the column i values, skipping NA values
+		outliers <- boxplot.stats(col_vals[!is.na(col_vals)])$out
+		# set values as NA that aren't alreaqdy NA but are considered outliers
+		csv[!is.na(col_vals) & col_vals %in% outliers, i] <- NA
+	}
 }
 
 # -1 to exclude the timestamps
@@ -87,8 +95,9 @@ if (length(labels) < num_channels)
 
 # find reasonable ylim values
 # add 20% of the min-max distance above max and below min to make some room in the visual presentation
-min_y <- min(csv[,2:(num_channels+1)]) / microsecond;
-max_y <- max(csv[,2:(num_channels+1)]) / microsecond;
+# set na.rm to TRUE to skip NA values when calculating min/max quantities
+min_y <- min(csv[,2:(num_channels+1)], na.rm = TRUE) / microsecond;
+max_y <- max(csv[,2:(num_channels+1)], na.rm = TRUE) / microsecond;
 distance <- (max_y - min_y);
 min_y <- min_y - distance * 0.2;
 max_y <- max_y + distance * 0.2;
@@ -122,11 +131,19 @@ for (i in 0:(num_channels-1))
 {
 	yvalues_unfiltered <- csv[,(i+2)] / microsecond;
 
+	# skip channels that are entirely NA
+	if (all(is.na(yvalues_unfiltered)))
+	{
+		cat(sprintf("%s: skipping (all values are NA)\n", labels[i + 1]));
+		next;
+	}
+
 	colidx <- (i %% num_channels) + 1;
 	faintcolor <- colors[colidx, 2];
 
 	# plot 25%/50%/75% quantiles as faint horizontal lines (0% and 100% are min/max, just use them for log output)
-	q <- quantile(yvalues_unfiltered, probs = c(0.0, 0.25, 0.5, 0.75, 1.0));
+	# set na.rm to TRUE to skip NA values when calculating the quantiles
+	q <- quantile(yvalues_unfiltered, probs = c(0.0, 0.25, 0.5, 0.75, 1.0), na.rm = TRUE);
 	abline(q[2], 0, lwd = 0.5, lty = 1, col = faintcolor);
 	abline(q[3], 0, lwd = 0.5, lty = 1, col = faintcolor);
 	abline(q[4], 0, lwd = 0.5, lty = 1, col = faintcolor);
@@ -145,6 +162,11 @@ for (i in 0:(num_channels-1))
 		yvalues_unfiltered_padded <- c(rep(yvalues_unfiltered[1], padding), yvalues_unfiltered, rep(yvalues_unfiltered[length(yvalues_unfiltered)], padding))
 		yvalues_filtered <- filtfilt(lowpass_filter, yvalues_unfiltered_padded);
 		yvalues_filtered <- yvalues_filtered[(padding + 1):(length(yvalues_filtered) - padding)]
+
+		# set any yvalues that are NA in the original unfiltered form to NA in the
+		# filtered form as well to keep visible gaps in the output (important to
+		# spot missing input etc.)
+		yvalues_filtered[is.na(yvalues_unfiltered)] <- NA
 
 		# plot filtered yvalues with strong lines
 		lines(xvalues, yvalues_filtered, col = strongcolor, lwd = 2.0, lty = 1);
